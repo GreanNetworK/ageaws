@@ -180,7 +180,7 @@ public class JobTradeUp implements Job {
         o.setDurationType("GTC");
         o.setQuantity(new BigDecimal(1));
 //        o.setExitTarget(offer.add(new BigDecimal(0.0010)));
-        o.setExitStopLoss(offer.subtract(new BigDecimal(0.0005)));
+        o.setExitStopLoss(offer.subtract(new BigDecimal(0.0007)));
         try {
             StreamsterApiInterfaceProxy proxy = new StreamsterApiInterfaceProxy();
             proxy.sendOrder(o);
@@ -200,7 +200,7 @@ public class JobTradeUp implements Job {
         o.setDurationType("GTC");
         o.setQuantity(new BigDecimal(1));
 //        o.setExitTarget(offer.subtract(new BigDecimal(0.0010)));
-        o.setExitStopLoss(offer.add(new BigDecimal(0.0005)));
+        o.setExitStopLoss(offer.add(new BigDecimal(0.0007)));
         try {
             StreamsterApiInterfaceProxy proxy = new StreamsterApiInterfaceProxy();
             proxy.sendOrder(o);

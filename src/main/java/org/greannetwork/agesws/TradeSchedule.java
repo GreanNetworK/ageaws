@@ -22,7 +22,7 @@ import org.quartz.impl.StdSchedulerFactory;
 public class TradeSchedule {
     public static void main(String[] args) throws SchedulerException {
         EURUSD();
-        GBPJPY();
+//        GBPJPY();
     }
 
     private static void EURUSD() throws SchedulerException {

@@ -161,7 +161,7 @@ public class JobTradeUpGBPJPY implements Job {
             System.out.println(">>>>> " + bars[i].getBarDateTime().getTime() + " SELL GBP/JPY " + closeArray[i] + " => MACD[" + result[0] + "] LM[" + result[1] + "] EMA[" + result[2] + "] RSI[" + result[3] + "] STO[" + result[4] + "]");
             log.info(bars[i].getBarDateTime().getTime() + " SELL GBP/JPY " + closeArray[i] + " => MACD[" + result[0] + "] LM[" + result[1] + "] EMA[" + result[2] + "] RSI[" + result[3] + "] STO[" + result[4] + "]");
 
-            //sell();
+            sell();
 
             sellState = !sellState;
         } else {
@@ -180,7 +180,7 @@ public class JobTradeUpGBPJPY implements Job {
         o.setDurationType("GTC");
         o.setQuantity(new BigDecimal(1));
 //        o.setExitTarget(offer.add(new BigDecimal(0.0010)));
-        o.setExitStopLoss(offer.subtract(new BigDecimal(0.05)));
+        o.setExitStopLoss(offer.subtract(new BigDecimal(0.07)));
         try {
             StreamsterApiInterfaceProxy proxy = new StreamsterApiInterfaceProxy();
             proxy.sendOrder(o);
@@ -200,7 +200,7 @@ public class JobTradeUpGBPJPY implements Job {
         o.setDurationType("GTC");
         o.setQuantity(new BigDecimal(1));
 //        o.setExitTarget(offer.subtract(new BigDecimal(0.0010)));
-        o.setExitStopLoss(offer.add(new BigDecimal(0.05)));
+        o.setExitStopLoss(offer.subtract(new BigDecimal(0.07)));
         try {
             StreamsterApiInterfaceProxy proxy = new StreamsterApiInterfaceProxy();
             proxy.sendOrder(o);
