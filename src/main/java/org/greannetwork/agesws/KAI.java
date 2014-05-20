@@ -6,7 +6,6 @@
 package org.greannetwork.agesws;
 
 import com.novativa.www.ws.streamsterapi.Bar;
-import com.novativa.www.ws.streamsterapi.Order;
 import com.novativa.www.ws.streamsterapi.StreamsterApiInterfaceProxy;
 import com.tictactec.ta.lib.Core;
 import com.tictactec.ta.lib.MAType;
@@ -18,8 +17,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  *
@@ -110,7 +107,7 @@ public class KAI {
                     + signal[i]
                     + "\t Histogram "
                     + histogram[i]
-                    + "\t SMA5 "
+                    + "\t SMA50 "
                     + ma50[i]
                     + "\t EMA5 "
                     + ema5[i]
@@ -134,72 +131,67 @@ public class KAI {
                     + bbandsL[i]
             );
 
-            //MACD Indicator
-            if (macd[i] >= signal[i] && macd[i - 1] < signal[i - 1] && histogram[i] > 0) {
-                result[0] = 1;
-            } else if (macd[i] <= signal[i] && macd[i - 1] > signal[i - 1] && histogram[i] < 0) {
-                result[0] = -1;
-            } else {
-                result[0] = 0;
-            }
+            boolean closePriceWithSMA50 = trackCut(closeArray, ma50, i, 5);
+            boolean ema5WithSMA50 = trackCut(ema5, ma50, i, 5);
+            boolean ema100Trend = trackTrend(ema100, i);
+            boolean sarWithClosePrice = sar[i] < closeArray[i];
+            boolean macdWithSignal = trackCut(macd, signal, i, 5);
+            boolean macdHist = histogram[i] > 0;
+            boolean stocha = trackCut(slowD, slowK, i, 2);
 
-            //LastMarket Indicator
-            if (closeArray[i] > openArray[i] && closeArray[i - 1] > closeArray[i - 1]) {
-                result[1] = 1;
-            } else if (closeArray[i] < openArray[i] && closeArray[i - 1] < closeArray[i - 1]) {
-                result[1] = -1;
-            } else {
-                result[1] = 0;
-            }
+            System.out.println(bars[i].getBarDateTime().getTime() + " " + closePriceWithSMA50 + " " + ema5WithSMA50 + " " + ema100Trend + " " + sarWithClosePrice + " " + macdWithSignal + " " + macdHist);
 
-            //Ema Indicator (Fast-Slow Period)
-            if (ema100[i - 1] > ema5[i - 1] && ema100[i] <= ema5[i]) {
-                result[2] = 1;
-            } else if (ema100[i - 1] < ema5[i - 1] && ema100[i] >= ema5[i]) {
-                result[2] = -1;
-            } else {
-                result[2] = 0;
-            }
-
-            //RSI Indicator
-            if (rsi[i] >= 35 && rsi[i - 1] < 35) {
-                result[3] = 1;
-            } else if (rsi[i] <= 65 && rsi[i - 1] > 65) {
-                result[3] = -1;
-            } else {
-                result[3] = 0;
-            }
-
-            //Stochastic
-            if (slowK[i] >= slowD[i] && slowK[i - 1] < slowD[i - 1] && slowK[i] < 30) {
-                result[4] = 1;
-            } else if (slowK[i] <= slowD[i] && slowK[i - 1] > slowD[i - 1] && slowK[i] > 70) {
-                result[4] = -1;
-            } else {
-                result[4] = 0;
-            }
-
-            System.out.println(i + " " + result[0] + " " + result[1] + " " + result[2] + " " + result[3] + " " + result[4]);
-            Integer sum = result[0] + result[1] + result[2] + result[3] + result[4];
-             Integer out = result[4];
-
-            if (!state && sum > 0) {
-                System.out.println(i+" "+bars[i].getBarDateTime().getTime() + " BUY " + closeArray[i] + " => MACD[" + result[0] + "] LM[" + result[1] + "] EMA[" + result[2] + "] RSI[" + result[3] + "] STO[" + result[4] + "]");
-                logs.add(bars[i].getBarDateTime().getTime() + " BUY " + closeArray[i] + " => MACD[" + result[0] + "] LM[" + result[1] + "] EMA[" + result[2] + "] RSI[" + result[3] + "] STO[" + result[4] + "]");
+            int sum = booleanToInt(closePriceWithSMA50)+booleanToInt(ema5WithSMA50)+booleanToInt(ema100Trend)+booleanToInt(sarWithClosePrice)+booleanToInt(macdWithSignal)+booleanToInt(macdHist);
+            
+            BigDecimal subtract = bars[i].getClose().subtract(price);
+            if (!state && sum >= 4) {
+                logs.add(i+" "+bars[i].getBarDateTime().getTime() + " BUY "+bars[i].getClose());
                 price = bars[i].getClose();
                 state = !state;
-            } else if (state && sum < 0) {
-                System.out.println(i+ " "+bars[i].getBarDateTime().getTime() + " SELL " + closeArray[i] + " => MACD[" + result[0] + "] LM[" + result[1] + "] EMA[" + result[2] + "] RSI[" + result[3] + "] STO[" + result[4] + "]");
-                logs.add(bars[i].getBarDateTime().getTime() + " SELL " + closeArray[i] + " => MACD[" + result[0] + "] LM[" + result[1] + "] EMA[" + result[2] + "] RSI[" + result[3] + "] STO[" + result[4] + "] GET " + (bars[i].getClose().subtract(price)));
+            }else if(state && stocha && subtract.compareTo(new BigDecimal(0.0001).setScale(4, RoundingMode.DOWN)) >= 0){  
+                logs.add(i+" "+bars[i].getBarDateTime().getTime() + " SELL "+bars[i].getClose()+" GET "+subtract);
+                total = total.add(subtract);
                 state = !state;
-                total = total.add((bars[i].getClose().subtract(price)));
+            }else if(state && subtract.compareTo(new BigDecimal(-0.0010).setScale(4, RoundingMode.DOWN)) <= 0){
+                logs.add("cut lose"+subtract);
+                state = !state;
             }
         }
-        
+
         logs.stream().forEach((loge) -> {
             System.out.println(loge);
         });
         System.out.println(total);
+    }
+
+    private static boolean trackCut(double[] upper, double[] under, int position, int deep) {
+        if(upper[position] <= under[position]){
+            return false;
+        }
+        for (int i = (position-1); i > (position - deep); i--) {
+            if (upper[i] < under[i]) {
+                return true;
+            } 
+        }
+        return false;
+    }
+
+    private static boolean trackTrend(double[] real, int position) {
+        if(real[position] < real[position-1]){
+            return false;
+        }
+        for (int i = position; i >= 0; i--) {
+            return real[i] > real[i-1];
+        }
+        return false;
+    }
+    
+    private static int booleanToInt(boolean value){
+        if(value){
+            return 1;
+        }else{
+            return 0;
+        }
     }
 
     private static double[] shiftList(double[] datas, int total) {

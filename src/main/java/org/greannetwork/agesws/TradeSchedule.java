@@ -27,13 +27,13 @@ public class TradeSchedule {
 
     private static void EURUSD() throws SchedulerException {
         JobDetail job = JobBuilder
-                .newJob(JobTradeUp.class)
-                .withIdentity("JobTradeUp")
+                .newJob(JobTradeUpEURUSD.class)
+                .withIdentity("JobTradeUpEURUSD")
                 .build();
         
         Trigger trigger = TriggerBuilder
                 .newTrigger()
-                .withIdentity("JobTradeUp")
+                .withIdentity("JobTradeUpEURUSD")
                 .withSchedule(SimpleScheduleBuilder.simpleSchedule().withIntervalInSeconds(60).repeatForever())
                 .build();
         
