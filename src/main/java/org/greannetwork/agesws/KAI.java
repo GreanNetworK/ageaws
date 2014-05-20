@@ -26,12 +26,11 @@ import org.apache.commons.logging.LogFactory;
  * @author San
  */
 public class KAI {
-    
 
     public static void main(String[] args) throws RemoteException {
         StreamsterApiInterfaceProxy proxy = new StreamsterApiInterfaceProxy();
-        Bar[] bars = proxy.getBars("EUR/USD", "30 Minutes", "f");
-        
+        Bar[] bars = proxy.getBars("EUR/USD", "5 Minutes", "f");
+
         List<BigDecimal> open = Arrays.asList(bars).stream().map(c -> c.getOpen()).collect(Collectors.toList());
         List<BigDecimal> close = Arrays.asList(bars).stream().map(c -> c.getClose()).collect(Collectors.toList());
         List<BigDecimal> high = Arrays.asList(bars).stream().map(c -> c.getHigh()).collect(Collectors.toList());
@@ -46,8 +45,9 @@ public class KAI {
         double[] signal = new double[close.size() - 33];
         double[] histogram = new double[close.size() - 33];
 
+        double[] ma50 = new double[close.size() - 49];
         double[] ema5 = new double[close.size() - 4];
-        double[] ema20 = new double[close.size() - 19];
+        double[] ema100 = new double[close.size() - 99];
         double[] rsi = new double[close.size() - 14];
         double[] adx10 = new double[close.size() - 19];
         double[] minusDI10 = new double[close.size() - 10];
@@ -56,22 +56,29 @@ public class KAI {
         double[] slowK = new double[close.size() - 8];
         double[] slowD = new double[close.size() - 8];
 
+        double[] bbandsU = new double[close.size() - 19];
+        double[] bbandsM = new double[close.size() - 19];
+        double[] bbandsL = new double[close.size() - 19];
+
         Core c = new Core();
         c.macd(0, close.size() - 1, closeArray, 12, 26, 9, new MInteger(), new MInteger(), macd, signal, histogram);
+        c.sma(0, close.size() - 1, closeArray, 50, new MInteger(), new MInteger(), ma50);
         c.ema(0, close.size() - 1, closeArray, 5, new MInteger(), new MInteger(), ema5);
-        c.ema(0, close.size() - 1, closeArray, 20, new MInteger(), new MInteger(), ema20);
+        c.ema(0, close.size() - 1, closeArray, 100, new MInteger(), new MInteger(), ema100);
         c.rsi(0, close.size() - 1, closeArray, 14, new MInteger(), new MInteger(), rsi);
         c.adx(0, close.size() - 1, highArray, lowArray, closeArray, 10, new MInteger(), new MInteger(), adx10);
         c.minusDI(0, close.size() - 1, highArray, lowArray, closeArray, 10, new MInteger(), new MInteger(), minusDI10);
         c.plusDI(0, close.size() - 1, highArray, lowArray, closeArray, 10, new MInteger(), new MInteger(), plusDI10);
         c.sar(0, close.size() - 1, highArray, lowArray, 0.02, 0.2, new MInteger(), new MInteger(), sar);
         c.stoch(0, close.size() - 1, highArray, lowArray, closeArray, 5, 3, MAType.Ema, 3, MAType.Ema, new MInteger(), new MInteger(), slowK, slowD);
+        c.bbands(0, close.size() - 1, closeArray, 20, 2.000000e+0, 2.000000e+0, MAType.Ema, new MInteger(), new MInteger(), bbandsU, bbandsM, bbandsL);
 
         macd = shiftList(macd, close.size());
         signal = shiftList(signal, close.size());
         histogram = shiftList(histogram, close.size());
+        ma50 = shiftList(ma50, close.size());
         ema5 = shiftList(ema5, close.size());
-        ema20 = shiftList(ema20, close.size());
+        ema100 = shiftList(ema100, close.size());
         rsi = shiftList(rsi, close.size());
         adx10 = shiftList(adx10, close.size());
         minusDI10 = shiftList(minusDI10, close.size());
@@ -79,13 +86,16 @@ public class KAI {
         sar = shiftList(sar, close.size());
         slowK = shiftList(slowK, close.size());
         slowD = shiftList(slowD, close.size());
+        bbandsU = shiftList(bbandsU, close.size());
+        bbandsM = shiftList(bbandsM, close.size());
+        bbandsL = shiftList(bbandsL, close.size());
 
         boolean state = false;
         List<String> logs = new ArrayList<>();
         BigDecimal price = BigDecimal.ZERO;
         BigDecimal total = BigDecimal.ZERO;
 
-        for (int i = 34; i < openArray.length; i++) {
+        for (int i = 100; i < openArray.length; i++) {
 
             Integer[] result = new Integer[5];
 
@@ -100,10 +110,12 @@ public class KAI {
                     + signal[i]
                     + "\t Histogram "
                     + histogram[i]
+                    + "\t SMA5 "
+                    + ma50[i]
                     + "\t EMA5 "
                     + ema5[i]
-                    + "\t EMA20 "
-                    + ema20[i]
+                    + "\t EMA100 "
+                    + ema100[i]
                     + "\t RSI "
                     + rsi[i]
                     + "\t ADX10 "
@@ -114,11 +126,16 @@ public class KAI {
                     + plusDI10[i]
                     + "\t SAR "
                     + sar[i]
+                    + "\t BBANDSUPPER "
+                    + bbandsU[i]
+                    + "\t BBANDSMIDDLE "
+                    + bbandsM[i]
+                    + "\t BBANDSLOWER "
+                    + bbandsL[i]
             );
 
             //MACD Indicator
             if (macd[i] >= signal[i] && macd[i - 1] < signal[i - 1] && histogram[i] > 0) {
-                System.out.println(i + ">>>>>" + macd[i] + " " + signal[i] + " " + histogram[i]);
                 result[0] = 1;
             } else if (macd[i] <= signal[i] && macd[i - 1] > signal[i - 1] && histogram[i] < 0) {
                 result[0] = -1;
@@ -136,9 +153,9 @@ public class KAI {
             }
 
             //Ema Indicator (Fast-Slow Period)
-            if (ema20[i - 1] > ema5[i - 1] && ema20[i] <= ema5[i]) {
+            if (ema100[i - 1] > ema5[i - 1] && ema100[i] <= ema5[i]) {
                 result[2] = 1;
-            } else if (ema20[i - 1] < ema5[i - 1] && ema20[i] >= ema5[i]) {
+            } else if (ema100[i - 1] < ema5[i - 1] && ema100[i] >= ema5[i]) {
                 result[2] = -1;
             } else {
                 result[2] = 0;
@@ -178,7 +195,7 @@ public class KAI {
                 total = total.add((bars[i].getClose().subtract(price)));
             }
         }
-
+        
         logs.stream().forEach((loge) -> {
             System.out.println(loge);
         });
